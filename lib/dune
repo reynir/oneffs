@@ -1,3 +1,4 @@
 (library
   (public_name oneffs)
+  (name oneffs)
   (libraries mirage-block cstruct lwt checkseum))
