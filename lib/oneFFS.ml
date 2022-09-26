@@ -36,6 +36,7 @@ module Header = struct
       Checkseum.Crc32.digest_bigstring buf.buffer buf.off
         (2 + 8 + digest_size) Checkseum.Crc32.default
     in
+    (* XXX: check whole buffer is zero? *)
     if (magic' = 0 || magic' = magic) &&
        data_length = 0L && Optint.(equal zero file_crc) && Optint.(equal zero crc) then
       Ok None (* if it's all zeroed we treat it as empty *)
@@ -126,25 +127,27 @@ module Make(B : Mirage_block.S) = struct
           Lwt_result.fail `Bad_checksum
 
   let connect b =
-    let (let*?) = Lwt_result.bind in
     let* info = B.get_info b in
-    let*? () =
-      if info.Mirage_block.sector_size < Header.length
-      then Lwt_result.fail `Block_size_too_small
-      else Lwt_result.return ()
-    in
+    if info.Mirage_block.sector_size < Header.length
+    then raise (Invalid_argument "Block size too small");
     let buf = Cstruct.create info.sector_size in
-    let*? () = B.read b 0L [buf] |> Lwt_result.map_error (fun e -> `Block e) in
+    let* r = B.read b 0L [buf] in
+    let () =
+      match r with
+      | Ok () -> ()
+      | Error e -> Format.kasprintf failwith "OneFFS.connect: %a" B.pp_error e
+    in
     match Header.unmarshal buf with
-    | Error msg -> Lwt_result.fail (`Header msg)
+    | Error msg ->
+      Printf.ksprintf Lwt.fail_with "bad header: %s" msg
     | Ok None ->
       (* Reuse the buffer for the empty header *)
       Cstruct.memset buf 0;
       Cstruct.blit_from_string Header.empty 0 buf 0 (String.length Header.empty);
-      Lwt_result.return { b; info; f = None; empty_header = buf; }
+      Lwt.return { b; info; f = None; empty_header = buf; }
     | Ok Some header ->
       (* Reuse the buffer for the empty header *)
       Cstruct.memset buf 0;
       Cstruct.blit_from_string Header.empty 0 buf 0 (String.length Header.empty);
-      Lwt_result.return { b; info; f = Some header; empty_header = buf; }
+      Lwt.return { b; info; f = Some header; empty_header = buf; }
 end
