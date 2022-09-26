@@ -128,8 +128,8 @@ module Make(B : Mirage_block.S) = struct
     let (let*?) = Lwt_result.bind in
     let* info = B.get_info b in
     let*? () =
-      if info.Mirage_block.sector_size < 512
-      then Lwt_result.fail (`Msg "Too small block size")
+      if info.Mirage_block.sector_size < Header.length
+      then Lwt_result.fail `Block_size_too_small
       else Lwt_result.return ()
     in
     let buf = Cstruct.create info.sector_size in

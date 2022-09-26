@@ -11,5 +11,5 @@ module Make(B : Mirage_block.S) : sig
 
   val is_set : t -> bool
 
-  val connect : B.t -> (t, [> `Block of B.error | `Msg of string ]) result Lwt.t
+  val connect : B.t -> (t, [> error | `Block_size_too_small ]) result Lwt.t
 end
