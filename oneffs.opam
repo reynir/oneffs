@@ -1,0 +1,27 @@
+opam-version: "2.0"
+maintainer: [ "Reynir Björnsson <reynir@reynir.dk>" ]
+authors: [ "Reynir Björnsson <reynir@reynir.dk>" ]
+homepage: "https://git.robur.io/reynir/mirage-block-partition"
+bug-reports: "https://git.robur.io/reynir/mirage-block-partition/issues"
+dev-repo: "git+https://git.robur.io/reynir/mirage-block-partition.git"
+license: "ISC"
+synopsis: "One-file filesystem is a filesystem for storing a single unnamed file"
+description: """
+One-file filesystem is a filesystem for storing a single unnamed file. It is
+suitable for storing data that may be lost on updates. For example a cache of
+pre-computed cryptographic checksums that are slow to compute, but that we
+would rather recompute than have stale checksums.
+CRC32 checksums are used to ensure integrity.
+"""
+
+build: [
+  [ "dune" "subst" ] { dev }
+  [ "dune" "build" "-p" name "-j" jobs ]
+  [ "dune" "runtest" "-p" name "-j" jobs ] { with-test }
+]
+depends: [
+  "mirage-block"
+  "lwt"
+  "cstruct"
+  "checkseum"
+]
