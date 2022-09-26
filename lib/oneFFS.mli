@@ -1,7 +1,7 @@
 module Make(B : Mirage_block.S) : sig
   type t
 
-  type error = [ `Block of B.error | `Bad_checksum ]
+  type error = [ `Block of B.error | `Bad_checksum | `Header of string ]
 
   type write_error = [ `Block_write of B.write_error ]
 

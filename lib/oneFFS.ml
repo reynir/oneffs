@@ -36,10 +36,11 @@ module Header = struct
       Checkseum.Crc32.digest_bigstring buf.buffer buf.off
         (2 + 8 + digest_size) Checkseum.Crc32.default
     in
-    if magic' <> magic then
-      Ok None
-    else if data_length = 0L && Optint.(equal zero file_crc) && Optint.(equal zero crc) then
-      Ok None
+    if (magic' = 0 || magic' = magic) &&
+       data_length = 0L && Optint.(equal zero file_crc) && Optint.(equal zero crc) then
+      Ok None (* if it's all zeroed we treat it as empty *)
+    else if magic' <> magic then
+      Error "Not a OneFFS"
     else if not (Checkseum.Crc32.equal crc crc') then
       Error "Bad CRC"
     else
@@ -66,7 +67,7 @@ module Make(B : Mirage_block.S) = struct
     empty_header : Cstruct.t;
   }
 
-  type error = [ `Block of B.error | `Bad_checksum ]
+  type error = [ `Block of B.error | `Bad_checksum | `Header of string ]
 
   type write_error = [ `Block_write of B.write_error ]
 
@@ -135,7 +136,7 @@ module Make(B : Mirage_block.S) = struct
     let buf = Cstruct.create info.sector_size in
     let*? () = B.read b 0L [buf] |> Lwt_result.map_error (fun e -> `Block e) in
     match Header.unmarshal buf with
-    | Error msg -> Lwt_result.fail (`Msg msg)
+    | Error msg -> Lwt_result.fail (`Header msg)
     | Ok None ->
       (* Reuse the buffer for the empty header *)
       Cstruct.memset buf 0;
