@@ -30,8 +30,8 @@ module Header = struct
     if Cstruct.length buf < length then raise (Invalid_argument "Header.unmarshal: Buffer too short");
     let magic' = Cstruct.BE.get_uint16 buf 0 in
     let data_length = Cstruct.BE.get_uint64 buf 2 in
-    let file_crc = Optint.of_int32 (Cstruct.BE.get_uint32 buf (2 + 8)) in
-    let crc = Optint.of_int32 (Cstruct.BE.get_uint32 buf (2 + 8 + digest_size)) in
+    let file_crc = Optint.of_unsigned_int32 (Cstruct.BE.get_uint32 buf (2 + 8)) in
+    let crc = Optint.of_unsigned_int32 (Cstruct.BE.get_uint32 buf (2 + 8 + digest_size)) in
     let crc' =
       Checkseum.Crc32.digest_bigstring buf.buffer buf.off
         (2 + 8 + digest_size) Checkseum.Crc32.default
