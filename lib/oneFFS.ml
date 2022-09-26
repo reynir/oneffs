@@ -68,9 +68,15 @@ module Make(B : Mirage_block.S) = struct
     empty_header : Cstruct.t;
   }
 
-  type error = [ `Block of B.error | `Bad_checksum | `Header of string ]
+  type error = [ `Block of B.error | `Bad_checksum ]
 
-  type write_error = [ `Block_write of B.write_error ]
+  type write_error = B.write_error
+
+  let pp_error ppf = function
+    | `Block e -> B.pp_error ppf e
+    | `Bad_checksum -> Fmt.pf ppf "Bad checksum"
+
+  let pp_write_error = B.pp_write_error
 
   let is_set t = Option.is_some t.f
 
@@ -80,7 +86,6 @@ module Make(B : Mirage_block.S) = struct
     t.f <- None;
     let*? () =
       B.write t.b 0L [t.empty_header]
-      |> Lwt_result.map_error (fun e -> `Block_write e)
     in
     let sectors =
       let sector_size = Int64.of_int t.info.sector_size in
@@ -90,11 +95,11 @@ module Make(B : Mirage_block.S) = struct
     let buf = Cstruct.create (succ sectors * t.info.sector_size) in
     Cstruct.blit_from_string s 0 buf t.info.sector_size (String.length s);
     let bufs = List.init sectors (fun i -> Cstruct.sub buf (succ i * t.info.sector_size) t.info.sector_size) in
-    let*? () = B.write t.b 1L bufs |> Lwt_result.map_error (fun e -> `Block_write e) in
+    let*? () = B.write t.b 1L bufs in
     let header = Header.create s in
     let buf = Cstruct.sub buf 0 t.info.sector_size in
     Header.marshal header buf;
-    let*? () = B.write t.b 0L [buf] |> Lwt_result.map_error (fun e -> `Block_write e) in
+    let*? () = B.write t.b 0L [buf] in
     t.f <- Some header;
     Lwt_result.return ()
 
