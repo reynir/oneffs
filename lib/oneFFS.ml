@@ -131,6 +131,15 @@ module Make(B : Mirage_block.S) = struct
         else
           Lwt_result.fail `Bad_checksum
 
+  let format b =
+    let* info = B.get_info b in
+    let buf = Cstruct.create info.sector_size in
+    Cstruct.blit_from_string Header.empty 0 buf 0 (String.length Header.empty);
+    B.write b 0L [buf]
+
+  let reset t =
+    B.write t.b 0L [t.empty_header]
+
   let connect b =
     let* info = B.get_info b in
     if info.Mirage_block.sector_size < Header.length
