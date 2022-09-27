@@ -22,8 +22,8 @@ build: [
 depends: [
   "dune" {>= "3.4"}
   "ocaml" {>= "4.08.0"}
-  "mirage-block"
-  "lwt"
-  "cstruct"
+  "mirage-block" {>= "3.0.0"}
+  "lwt" {>= "2.6.0"}
+  "cstruct" {>= "6.0.0"}
   "checkseum"
 ]
