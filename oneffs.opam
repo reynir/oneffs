@@ -20,6 +20,8 @@ build: [
   [ "dune" "runtest" "-p" name "-j" jobs ] { with-test }
 ]
 depends: [
+  "dune" {>= "3.4"}
+  "ocaml" {>= "4.08.0"}
   "mirage-block"
   "lwt"
   "cstruct"
