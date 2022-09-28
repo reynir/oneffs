@@ -164,4 +164,100 @@ module Make(B : Mirage_block.S) = struct
       Cstruct.memset buf 0;
       Cstruct.blit_from_string Header.empty 0 buf 0 (String.length Header.empty);
       Lwt.return { b; info; f = Some header; empty_header = buf; }
+
+  module RO = struct
+    module Key = Mirage_kv.Key
+
+    let pp_error ppf = function
+      | `Not_implemented -> Fmt.string ppf "Operation not implemented"
+      | #error as e -> pp_error ppf e
+      | #Mirage_kv.error as e -> Mirage_kv.pp_error ppf e
+
+    type nonrec error = [ `Not_implemented | error | Mirage_kv.error ]
+
+    type nonrec t = t
+
+    let disconnect _t =
+      Lwt.return_unit
+
+    type nonrec key = Key.t
+
+    let is_empty = Key.equal Key.empty
+
+    let exists t key =
+      Lwt.return_ok (if is_empty key && is_set t then Some `Value else None)
+
+    let get t key =
+      if not (is_empty key) then
+        Lwt_result.fail (`Not_found key)
+      else
+        Lwt_result.bind_result (read t) @@ function
+        | Some s -> Ok s
+        | None -> Error (`Not_found key)
+
+
+    let list t key =
+      if is_empty key && is_set t then
+        Lwt.return_ok [ "", `Value ]
+      else
+        Lwt.return_error (`Not_found key)
+
+    let last_modified t key =
+      if is_empty key && is_set t then
+        Lwt.return_error `Not_implemented
+      else
+        Lwt.return_error (`Not_found key)
+
+    let digest t key =
+      if is_empty key then
+        match t.f with
+        | None ->
+          Lwt.return_error (`Not_found key)
+        | Some header ->
+          let digest = Optint.to_unsigned_int32 header.file_crc in
+          Lwt.return_ok (Printf.sprintf "%lx" digest)
+      else
+        Lwt.return_error (`Not_found key)
+
+    let size t key =
+      if is_empty key then
+        match t.f with
+        | None ->
+          Lwt.return_error (`Not_found key)
+        | Some header ->
+          Lwt.return_ok header.length
+      else
+        Lwt.return_error (`Not_found key)
+  end
+
+  module RW = struct
+    let pp_write_error ppf = function
+      | `Block_write e -> pp_write_error ppf e
+      | #Mirage_kv.write_error as e -> Mirage_kv.pp_write_error ppf e
+
+    type nonrec write_error = [ `Block_write of write_error | Mirage_kv.write_error ]
+
+    include RO
+
+    let set t key data =
+      if is_empty key then
+        Lwt_result.map_error (fun e -> `Block_write e) (write t data)
+      else
+        Lwt.return_error (`Not_found key)
+
+    let remove t key =
+      if is_empty key then
+        Lwt_result.map_error (fun e -> `Block_write e) (reset t)
+      else
+        Lwt.return_ok ()
+
+    let rename _t ~source ~dest =
+      if is_empty source && is_empty dest then
+        Lwt.return_ok ()
+      else
+        Lwt.return_error (`Not_found (if is_empty source then dest else source))
+
+    let batch t ?retries:(_=13) f =
+      f t
+  end
 end

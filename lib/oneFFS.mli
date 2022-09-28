@@ -28,4 +28,14 @@ module Make(B : Mirage_block.S) : sig
       is destructive. *)
 
   val connect : B.t -> t Lwt.t
+
+  module RO : sig
+    include Mirage_kv.RO with type t = t
+    val size : t -> key -> (int, error) result Lwt.t
+  end
+
+  module RW : sig
+    include Mirage_kv.RW with type t = t
+    val rename : t -> source:key -> dest:key -> (unit, write_error) result Lwt.t
+  end
 end
