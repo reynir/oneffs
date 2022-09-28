@@ -154,14 +154,9 @@ module Make(B : Mirage_block.S) = struct
     match Header.unmarshal buf with
     | Error msg ->
       Printf.ksprintf Lwt.fail_with "bad header: %s" msg
-    | Ok None ->
+    | Ok f ->
       (* Reuse the buffer for the empty header *)
       Cstruct.memset buf 0;
       Cstruct.blit_from_string Header.empty 0 buf 0 (String.length Header.empty);
-      Lwt.return { b; info; f = None; empty_header = buf; }
-    | Ok Some header ->
-      (* Reuse the buffer for the empty header *)
-      Cstruct.memset buf 0;
-      Cstruct.blit_from_string Header.empty 0 buf 0 (String.length Header.empty);
-      Lwt.return { b; info; f = Some header; empty_header = buf; }
+      Lwt.return { b; info; f; empty_header = buf; }
 end
