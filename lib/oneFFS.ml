@@ -137,6 +137,9 @@ module Make(B : Mirage_block.S) = struct
     Cstruct.blit_from_string Header.empty 0 buf 0 (String.length Header.empty);
     B.write b 0L [buf]
 
+  let size t =
+    Option.map (fun h -> h.Header.length) t.f
+
   let reset t =
     B.write t.b 0L [t.empty_header]
 

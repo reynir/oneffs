@@ -1,0 +1,3 @@
+(executable
+ (name oneffs)
+ (libraries oneffs cmdliner mirage-block-unix))

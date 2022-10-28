@@ -20,6 +20,9 @@ module Make(B : Mirage_block.S) : sig
   val is_set : t -> bool
   (**  [is_set fs] is true if [fs] has any data. *)
 
+  val size : t -> int option
+  (** [size fs] is [Some size] if the contents is [size] bytes long, or [None] if unset. *)
+
   val reset : t -> (unit, write_error) result Lwt.t
   (** [reset fs] sets [fs] to no data. *)
 
