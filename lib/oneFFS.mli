@@ -30,5 +30,15 @@ module Make(B : Mirage_block.S) : sig
   (** [format b] writes an empty header at the beginning of [b]. Note that this
       is destructive. *)
 
+  val stream : t -> (bytes -> (int , error) result Lwt.t) option
+(** [stream fs] is [Some reader] where [reader buf] is [Ok bytes_read] and
+    fills [buf] with [bytes_read] bytes read from the file.
+    [reader] can be called repeatedly to read subsequent bytes from the file in
+    a streaming manner. When the end of file is reached then either [Ok 0] is
+    returned or [Error `Bad_checksum] if the file contents do not match with
+    the checksum from the header when [stream fs] was called.
+    NOTE: the caller can only know at the end of the file if the data read is
+    corrupt or not, and should try to recover in that case. *)
+
   val connect : B.t -> t Lwt.t
 end

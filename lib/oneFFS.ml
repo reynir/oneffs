@@ -143,6 +143,37 @@ module Make(B : Mirage_block.S) = struct
   let reset t =
     B.write t.b 0L [t.empty_header]
 
+  let stream t =
+    match t.f with
+    | None -> None
+    | Some header ->
+      let off = ref 0
+      and file_crc = ref Checkseum.Crc32.default in
+      let reader buf =
+        if !off = header.length then
+          if Checkseum.Crc32.equal !file_crc header.file_crc then
+            Lwt_result.return 0
+          else
+            Lwt_result.fail `Bad_checksum
+        else
+          let sector_size = t.info.Mirage_block.sector_size in
+          let slack = !off mod sector_size in
+          let want_to_read = min (Bytes.length buf) (header.length - !off) in
+          let sectors = (want_to_read + pred sector_size) / sector_size in
+          let cs = Cstruct.create (sectors * sector_size) in
+          let b_off = 1 + !off / sector_size in
+          off := !off + want_to_read;
+          let* r = B.read t.b (Int64.of_int b_off) [cs] in
+          match r with
+          | Error e -> Lwt_result.fail (`Block e)
+          | Ok () ->
+            Cstruct.blit_to_bytes cs slack buf 0 want_to_read;
+            file_crc :=
+              Checkseum.Crc32.unsafe_digest_bytes buf 0 want_to_read !file_crc;
+            Lwt_result.return want_to_read
+      in
+      Some reader
+
   let connect b =
     let* info = B.get_info b in
     if info.Mirage_block.sector_size < Header.length

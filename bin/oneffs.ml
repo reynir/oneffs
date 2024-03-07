@@ -21,6 +21,27 @@ let get block_size file =
     FS.pp_error Format.err_formatter e;
     exit 2
 
+let stream block_size file =
+  let* fs = connect block_size file in
+  match FS.stream fs with
+  | None ->
+    prerr_endline "No data.";
+    exit 1
+  | Some reader ->
+    let buf = Bytes.create (max 8196 block_size) in
+    let rec loop () =
+      let* r = reader buf in
+      match r with
+      | Ok 0 -> exit 0
+      | Ok len ->
+        output stdout buf 0 len;
+        loop ()
+      | Error e ->
+        FS.pp_error Format.err_formatter e;
+        exit 2
+    in
+    loop ()
+
 let set block_size file =
   let* b = connect block_size file in
   let r = Buffer.create 4096 in
@@ -69,6 +90,18 @@ let get_cmd =
   let info = Cmd.info "get" ~doc ~man in
   Cmd.v info Term.(const Lwt_main.run $ (const get $ block_size $ oneffs_file))
 
+let stream_cmd =
+  let doc = "Get contents, if any, of OneFFS - in a streaming manner." in
+  let man = [
+    `S Manpage.s_description;
+    `P "Get the contents of a OneFFS filesystem in a streaming manner. If the
+    filesystem is unset a message is printed on stderr and the exit status is
+    1. If the checksum isn't valid the exit status is 2. Note that the contents
+    are printed even if the checksum is invalid.";
+  ] in
+  let info = Cmd.info "stream" ~doc ~man in
+  Cmd.v info Term.(const Lwt_main.run $ (const stream $ block_size $ oneffs_file))
+
 let set_cmd =
   let doc = "Set contents of OneFFS." in
   let info = Cmd.info "set" ~doc in
@@ -83,7 +116,7 @@ let main_cmd =
   let doc = "OneFFS tool" in
   let info = Cmd.info "oneffs" ~version:"%%VERSION%%" ~doc in
   let default = Term.(ret (const (`Help (`Pager, None)))) in
-  Cmd.group info ~default [get_cmd; set_cmd; info_cmd]
+  Cmd.group info ~default [get_cmd; stream_cmd; set_cmd; info_cmd]
 
 let () =
   exit (Cmd.eval main_cmd)
