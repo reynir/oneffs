@@ -1,4 +1,4 @@
 (library
   (public_name oneffs)
   (name oneFFS)
-  (libraries mirage-block cstruct lwt checkseum))
+  (libraries mirage-block cstruct lwt checkseum mirage-clock ptime digestif))
