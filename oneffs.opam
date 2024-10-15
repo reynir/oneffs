@@ -23,7 +23,10 @@ depends: [
   "dune" {>= "3.4"}
   "ocaml" {>= "4.08.0"}
   "mirage-block" {>= "3.0.0"}
+  "mirage-clock"
+  "ptime"
   "lwt" {>= "2.6.0"}
   "cstruct" {>= "6.0.0"}
   "checkseum"
+  "digestif"
 ]
