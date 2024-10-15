@@ -198,4 +198,15 @@ module Make_lossless(Pclock : Mirage_clock.PCLOCK)(Block : Mirage_block.S) = str
   let write t data =
     let+ r = FS.write_data t.b t.superblock data in
     Result.map (fun superblock -> t.superblock <- superblock) r
+
+  let read t =
+    let+ r = FS.read_data t.b in
+    match r with
+    | Ok (superblock, data) ->
+      (* XXX: what to do with the read superblock?! *)
+      ignore superblock;
+      Lwt.return_ok data
+    | Error (`Msg _ as e) -> Lwt.return_error e
+    | Error (#FS.decode_err as e) ->
+      Lwt.return_error (`Msg (Format.asprintf "%a" FS.pp_decode_err e))
 end
