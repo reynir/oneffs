@@ -163,3 +163,39 @@ module Make(B : Mirage_block.S) = struct
       Cstruct.blit_from_string Header.empty 0 buf 0 (String.length Header.empty);
       Lwt.return { b; info; f; empty_header = buf; }
 end
+
+module Make_lossy = Make
+
+module Make_lossless(Pclock : Mirage_clock.PCLOCK)(Block : Mirage_block.S) = struct
+  module FS = Filesystem.Make(Pclock)(Block)
+
+  type t = {
+    b : Block.t;
+    mutable superblock : FS.superblock;
+  }
+
+  let connect b =
+    let* info = Block.get_info b in
+    if info.sector_size < FS.superblock_size then
+      failwith "sector size too small for this filesystem";
+    let* r = FS.read_data b in
+    match r with
+    | Error `Bad_checksum ->
+      let* r = FS.init b in
+      (match r with
+       | Ok superblock ->
+         Lwt.return ({ superblock; b }, None)
+       | Error `Msg e ->
+         Printf.ksprintf failwith "error initializing the block device: %s" e)
+    | Error `Msg e ->
+      Printf.ksprintf failwith "error reading block device: %s" e
+    | Error (#FS.decode_err as e) ->
+      Format.kasprintf failwith "error reading block device: %a" FS.pp_decode_err e
+    | Ok (superblock, data) ->
+      let t = { superblock; b } in
+      Lwt.return (t, Some data)
+
+  let write t data =
+    let+ r = FS.write_data t.b t.superblock data in
+    Result.map (fun superblock -> t.superblock <- superblock) r
+end

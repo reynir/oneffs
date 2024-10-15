@@ -32,3 +32,13 @@ module Make(B : Mirage_block.S) : sig
 
   val connect : B.t -> t Lwt.t
 end
+
+module Make_lossy = Make
+
+module Make_lossless(_ : Mirage_clock.PCLOCK)(Block : Mirage_block.S) : sig
+  type t
+
+  val connect : Block.t -> (t * string option) Lwt.t
+
+  val write : t -> string -> (unit, [> `Msg of string ]) result Lwt.t
+end
