@@ -162,7 +162,6 @@ module Make (Pclock : Mirage_clock.PCLOCK) (Block : Mirage_block.S) = struct
     let ss = info.Mirage_block.sector_size
     and sectors = info.Mirage_block.size_sectors
     in
-    assert (ss >= superblock_size);
     let data = Cstruct.of_string data in
     let data_per_sector = ss - 8 in (* each sector is prefixed by a next pointer *)
     let sectors_needed = (Cstruct.length data + (pred ss)) / data_per_sector in

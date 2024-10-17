@@ -1,17 +1,17 @@
 opam-version: "2.0"
 maintainer: [ "Reynir Björnsson <reynir@reynir.dk>" ]
-authors: [ "Reynir Björnsson <reynir@reynir.dk>" ]
+authors: [ "Hannes Mehnert <hannes@mehnert.org" ]
 homepage: "https://git.robur.coop/reynir/oneffs"
 bug-reports: "https://git.robur.coop/reynir/oneffs/issues"
 dev-repo: "git+https://git.robur.coop/reynir/oneffs.git"
 license: "ISC"
-synopsis: "One-file filesystem is a filesystem for storing a single unnamed file"
+synopsis: "One-file filesystem fail-safe is a filesystem for storing a single unnamed file in a fail-safe manner"
 description: """
 One-file filesystem is a filesystem for storing a single unnamed file. It is
-suitable for storing data that may be lost on updates. For example a cache of
-pre-computed cryptographic checksums that are slow to compute, but that we
-would rather recompute than have stale checksums.
-CRC32 checksums are used to ensure integrity.
+suitable for storing data that require safe-guards against interrupted writes.
+For example, it is useful for storing state that needs to be updated and where
+recovering older data is preferable over total data loss. Cryptographic SHA256
+checksums are used to ensure integrity of both the data and the superblock.
 """
 
 build: [
@@ -26,5 +26,6 @@ depends: [
   "mirage-clock"
   "lwt" {>= "2.6.0"}
   "cstruct" {>= "6.0.0"}
-  "checkseum"
+  "ptime"
+  "digestif"
 ]
