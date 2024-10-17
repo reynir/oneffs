@@ -1,5 +1,8 @@
 open Lwt.Syntax
 
+let src = Logs.Src.create "oneffs-fail-safe" ~doc:"Fail-safe One File Filesystem"
+module Log = (val Logs.src_log src : Logs.LOG)
+
 module Make(Pclock : Mirage_clock.PCLOCK)(Block : Mirage_block.S) = struct
   module FS = Filesystem.Make(Pclock)(Block)
 
@@ -15,6 +18,9 @@ module Make(Pclock : Mirage_clock.PCLOCK)(Block : Mirage_block.S) = struct
     let* r = FS.read_data b in
     match r with
     | Error `Bad_checksum ->
+      Log.info (fun m -> m "OneFFS_Fail_safe: bad checksum. \
+                            The filesystem may be uninitialized or corrupt. \
+                            Initializing...");
       let* r = FS.init b in
       (match r with
        | Ok superblock ->
@@ -36,8 +42,11 @@ module Make(Pclock : Mirage_clock.PCLOCK)(Block : Mirage_block.S) = struct
   let read t =
     let+ r = FS.read_data t.b in
     match r with
-    | Ok (_superblock, data) ->
+    | Ok (superblock, data) ->
       (* The read [_superblock] /should/ be equal to [t.superblock] *)
+      Log.debug (fun m ->
+          if superblock <> t.superblock then
+            m "read superblock differs from in-memory cached superblock");
       Ok data
     | Error (`Msg _ as e) -> Error e
     | Error (#FS.decode_err as e) ->
