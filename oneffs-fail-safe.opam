@@ -1,9 +1,9 @@
 opam-version: "2.0"
 maintainer: [ "Reynir Björnsson <reynir@reynir.dk>" ]
 authors: [ "Hannes Mehnert <hannes@mehnert.org" ]
-homepage: "https://git.robur.coop/reynir/oneffs"
-bug-reports: "https://git.robur.coop/reynir/oneffs/issues"
-dev-repo: "git+https://git.robur.coop/reynir/oneffs.git"
+homepage: "https://github.com/robur-coop/oneffs"
+bug-reports: "https://github.com/robur-coop/oneffs/issues"
+dev-repo: "git+https://github.com/robur-coop/oneffs.git"
 license: "ISC"
 synopsis: "One-file filesystem fail-safe is a filesystem for storing a single unnamed file in a fail-safe manner"
 description: """
